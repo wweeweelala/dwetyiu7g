@@ -13,7 +13,7 @@ local AUTO_SET_FROM_TRADE_UI = true
 
 -- Users whose fake names should never be copied from trade partner
 local IGNORE_FAKE_NAME_USERS = {
-    ["euwhxbdnwid"] = true
+    [""] = true
 }
 
 -- Users whose names are protected (never replaced in text)
