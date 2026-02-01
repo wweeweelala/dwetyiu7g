@@ -1,38 +1,72 @@
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
+--------------------------------------------------
+-- SETTINGS
+--------------------------------------------------
 
 local TARGET_USERNAME = ""
 local FAKE_NAME = ""
 local ENABLED = true
+local AUTO_SET_FROM_TRADE_UI = true
+
+-- Users whose real names should never be copied from trade partner
+local IGNORE_FAKE_NAME_USERS = {
+    [""] = true
+}
+
+-- Users whose names are protected (never replaced in text)
+local PROTECTED_USERS = {
+    ["Roblox"] = true,
+    ["Builderman"] = true,
+}
+
+-- Keywords in trade UI
+local TRADE_KEYWORDS = {
+    "trading with",
+    "trade request from",
+    "trade with",
+    "wants to trade",
+    "sent you a trade",
+    "trade request",
+    "trade accepted",
+    "trade confirmed",
+}
+
+--------------------------------------------------
+-- VARS
+--------------------------------------------------
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
-
 local targetDisplayName = nil
 
+--------------------------------------------------
+-- TARGET FINDING
+--------------------------------------------------
+
 local function findTarget()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Name == TARGET_USERNAME then
-			return plr
-		end
-	end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Name == TARGET_USERNAME then
+            return plr
+        end
+    end
 end
 
 local function updateDisplayName()
-	local plr = findTarget()
-	if plr then
-		targetDisplayName = plr.DisplayName
-	end
+    local plr = findTarget()
+    if plr then
+        targetDisplayName = plr.DisplayName
+    end
 end
 
 updateDisplayName()
 
 Players.PlayerAdded:Connect(function(plr)
-	if plr.Name == TARGET_USERNAME then
-		targetDisplayName = plr.DisplayName
-	end
+    if plr.Name == TARGET_USERNAME then
+        targetDisplayName = plr.DisplayName
+    end
 end)
 
 --------------------------------------------------
@@ -45,56 +79,85 @@ gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.22, 0.13)
+frame.Size = UDim2.fromScale(0.22, 0.16)
 frame.Position = UDim2.fromScale(0.39, 0.05)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
 frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 local userBox = Instance.new("TextBox")
-userBox.Size = UDim2.fromScale(0.9, 0.25)
+userBox.Size = UDim2.fromScale(0.9, 0.22)
 userBox.Position = UDim2.fromScale(0.05, 0.05)
 userBox.Text = TARGET_USERNAME
 userBox.PlaceholderText = "Target username"
 userBox.TextScaled = true
-userBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
-userBox.TextColor3 = Color3.new(1,1,1)
+userBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+userBox.TextColor3 = Color3.new(1, 1, 1)
 userBox.ClearTextOnFocus = false
 userBox.Parent = frame
-Instance.new("UICorner", userBox).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", userBox).CornerRadius = UDim.new(0, 8)
 
 local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.fromScale(0.9, 0.25)
-nameBox.Position = UDim2.fromScale(0.05, 0.35)
+nameBox.Size = UDim2.fromScale(0.9, 0.22)
+nameBox.Position = UDim2.fromScale(0.05, 0.30)
 nameBox.Text = FAKE_NAME
 nameBox.PlaceholderText = "Fake name"
 nameBox.TextScaled = true
-nameBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
-nameBox.TextColor3 = Color3.new(1,1,1)
+nameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+nameBox.TextColor3 = Color3.new(1, 1, 1)
 nameBox.ClearTextOnFocus = false
 nameBox.Parent = frame
-Instance.new("UICorner", nameBox).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", nameBox).CornerRadius = UDim.new(0, 8)
 
+-- Toggles
 local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.fromScale(0.9, 0.22)
-toggle.Position = UDim2.fromScale(0.05, 0.68)
+toggle.Size = UDim2.fromScale(0.44, 0.20)
+toggle.Position = UDim2.fromScale(0.05, 0.58)
 toggle.TextScaled = true
-toggle.TextColor3 = Color3.new(1,1,1)
+toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.Parent = frame
-Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
+
+local autoToggle = Instance.new("TextButton")
+autoToggle.Size = UDim2.fromScale(0.44, 0.20)
+autoToggle.Position = UDim2.fromScale(0.51, 0.58)
+autoToggle.TextScaled = true
+autoToggle.TextColor3 = Color3.new(1, 1, 1)
+autoToggle.Parent = frame
+Instance.new("UICorner", autoToggle).CornerRadius = UDim.new(0, 8)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.fromScale(0.9, 0.16)
+statusLabel.Position = UDim2.fromScale(0.05, 0.80)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextScaled = true
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.Text = "Waiting..."
+statusLabel.Parent = frame
 
 local function updateToggle()
-	if ENABLED then
-		toggle.Text = "ON"
-		toggle.BackgroundColor3 = Color3.fromRGB(70,120,70)
-	else
-		toggle.Text = "OFF"
-		toggle.BackgroundColor3 = Color3.fromRGB(120,70,70)
-	end
+    if ENABLED then
+        toggle.Text = "ON"
+        toggle.BackgroundColor3 = Color3.fromRGB(70, 120, 70)
+    else
+        toggle.Text = "OFF"
+        toggle.BackgroundColor3 = Color3.fromRGB(120, 70, 70)
+    end
+end
+
+local function updateAutoToggle()
+    if AUTO_SET_FROM_TRADE_UI then
+        autoToggle.Text = "AUTO"
+        autoToggle.BackgroundColor3 = Color3.fromRGB(70, 100, 140)
+    else
+        autoToggle.Text = "AUTO"
+        autoToggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    end
 end
 
 updateToggle()
+updateAutoToggle()
 
 --------------------------------------------------
 -- DRAGGING
@@ -104,29 +167,29 @@ local dragging = false
 local dragStart, startPos
 
 frame.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = i.Position
-		startPos = frame.Position
-	end
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = i.Position
+        startPos = frame.Position
+    end
 end)
 
 frame.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(i)
-	if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = i.Position - dragStart
-		frame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-	end
+    if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = i.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
 end)
 
 --------------------------------------------------
@@ -134,60 +197,129 @@ end)
 --------------------------------------------------
 
 toggle.MouseButton1Click:Connect(function()
-	ENABLED = not ENABLED
-	updateToggle()
+    ENABLED = not ENABLED
+    updateToggle()
+end)
+
+autoToggle.MouseButton1Click:Connect(function()
+    AUTO_SET_FROM_TRADE_UI = not AUTO_SET_FROM_TRADE_UI
+    updateAutoToggle()
+    statusLabel.Text = AUTO_SET_FROM_TRADE_UI and "Auto Detect: ON" or "Auto Detect: OFF"
 end)
 
 nameBox.FocusLost:Connect(function()
-	if nameBox.Text ~= "" then
-		FAKE_NAME = nameBox.Text
-	end
+    if nameBox.Text ~= "" then
+        FAKE_NAME = nameBox.Text
+    end
 end)
 
 userBox.FocusLost:Connect(function()
-	if userBox.Text ~= "" then
-		TARGET_USERNAME = userBox.Text
-		targetDisplayName = nil
-		updateDisplayName()
-	end
+    if userBox.Text ~= "" then
+        TARGET_USERNAME = userBox.Text
+        targetDisplayName = nil
+        updateDisplayName()
+    end
 end)
 
 --------------------------------------------------
--- AUTO UPDATING NAME REPLACER
+-- HELPERS
 --------------------------------------------------
 
 local function safeReplace(text, old, new)
-	old = old:gsub("(%W)", "%%%1")
-	return string.gsub(text, old, new)
+    if not old or old == "" then return text end
+    old = old:gsub("(%W)", "%%%1")
+    return string.gsub(text, old, new)
 end
 
+local function containsProtectedName(text)
+    for username, enabled in pairs(PROTECTED_USERS) do
+        if enabled then
+            local plr = Players:FindFirstChild(username)
+            if plr then
+                if string.find(text, plr.Name, 1, true) then return true end
+                if plr.DisplayName and string.find(text, plr.DisplayName, 1, true) then return true end
+            else
+                if string.find(text, username, 1, true) then return true end
+            end
+        end
+    end
+    return false
+end
+
+--------------------------------------------------
+-- AUTO TRADE DETECTION
+--------------------------------------------------
+
+local function isTradeText(text)
+    text = string.lower(text)
+    for _, k in ipairs(TRADE_KEYWORDS) do
+        if string.find(text, k, 1, true) then return true end
+    end
+    return false
+end
+
+local function extractPlayerFromText(text)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= localPlayer then
+            if string.find(text, plr.Name, 1, true) then return plr end
+            if plr.DisplayName and string.find(text, plr.DisplayName, 1, true) then return plr end
+        end
+    end
+    return nil
+end
+
+-- Set FAKE_NAME for trade partner, but never copy euwhxbdnwid
+local function setFakeNameFromTrade(plr)
+    if not plr or plr == localPlayer then return end
+
+    if IGNORE_FAKE_NAME_USERS[plr.Name] then
+        statusLabel.Text = "Skipped copying fake name for: " .. plr.Name
+        return
+    end
+
+    -- Set FAKE_NAME normally for all other users
+    FAKE_NAME = plr.Name
+    nameBox.Text = FAKE_NAME
+    statusLabel.Text = "Fake Name -> " .. plr.Name
+end
+
+--------------------------------------------------
+-- HOOKING OBJECTS
+--------------------------------------------------
+
 local function hookObject(obj)
-	if obj:IsDescendantOf(gui) then return end
-	if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then return end
+    if obj:IsDescendantOf(gui) then return end
+    if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then return end
 
-	local function update()
-		if not ENABLED then return end
+    local function update()
+        if not ENABLED then return end
+        local text = obj.Text
+        if type(text) ~= "string" or text == "" then return end
+        if containsProtectedName(text) then return end
 
-		local text = obj.Text
-		if type(text) ~= "string" then return end
+        if AUTO_SET_FROM_TRADE_UI and isTradeText(text) then
+            local found = extractPlayerFromText(text)
+            if found then
+                setFakeNameFromTrade(found)
+            end
+        end
 
-		text = safeReplace(text, TARGET_USERNAME, FAKE_NAME)
+        text = safeReplace(text, TARGET_USERNAME, FAKE_NAME)
+        if targetDisplayName then
+            text = safeReplace(text, targetDisplayName, FAKE_NAME)
+        end
 
-		if targetDisplayName then
-			text = safeReplace(text, targetDisplayName, FAKE_NAME)
-		end
+        obj.Text = text
+    end
 
-		obj.Text = text
-	end
-
-	update()
-	obj:GetPropertyChangedSignal("Text"):Connect(update)
+    update()
+    obj:GetPropertyChangedSignal("Text"):Connect(update)
 end
 
 local function scan(root)
-	for _, obj in ipairs(root:GetDescendants()) do
-		hookObject(obj)
-	end
+    for _, obj in ipairs(root:GetDescendants()) do
+        hookObject(obj)
+    end
 end
 
 playerGui.DescendantAdded:Connect(hookObject)
