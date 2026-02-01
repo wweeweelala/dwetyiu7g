@@ -1,0 +1,406 @@
+-- =========================
+-- SERVICES
+-- =========================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local localPlayer = Players.LocalPlayer
+
+-- =========================
+-- SETTINGS
+-- =========================
+local ESP_ENABLED = true
+local TOGGLE_KEY = Enum.KeyCode.RightShift
+local NAME_TEXT_SIZE = 16
+local BILLBOARD_OFFSET = Vector3.new(0, 1.8, 0)
+
+local AIM_ASSIST_ENABLED = false
+local AIM_ASSIST_KEY = Enum.KeyCode.E
+local AIM_SPEED = 5 -- default speed
+local TARGET_RADIUS = 150 -- pixels for FOV
+
+local tracked = {} -- [player] = {highlight, billboard, nameLabel}
+
+-- =========================
+-- GUI
+-- =========================
+local function createGui()
+	local playerGui = localPlayer:WaitForChild("PlayerGui")
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "ESP_AimGui"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = playerGui
+
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Size = UDim2.new(0, 250, 0, 320)
+	mainFrame.Position = UDim2.new(0, 15, 0, 15)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = mainFrame
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(70, 70, 70)
+	stroke.Parent = mainFrame
+
+	-- =========================
+	-- ESP CONTROLS
+	-- =========================
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -10, 0, 24)
+	title.Position = UDim2.new(0, 10, 0, 6)
+	title.BackgroundTransparency = 1
+	title.Text = "ESP Controls"
+	title.TextSize = 18
+	title.Font = Enum.Font.GothamBold
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = mainFrame
+
+	local toggleButton = Instance.new("TextButton")
+	toggleButton.Size = UDim2.new(1, -20, 0, 35)
+	toggleButton.Position = UDim2.new(0, 10, 0, 36)
+	toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	toggleButton.BorderSizePixel = 0
+	toggleButton.TextSize = 18
+	toggleButton.Font = Enum.Font.GothamBold
+	toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	toggleButton.Text = ESP_ENABLED and "ESP: ON" or "ESP: OFF"
+	toggleButton.Parent = mainFrame
+	local toggleCorner = Instance.new("UICorner")
+	toggleCorner.CornerRadius = UDim.new(0, 10)
+	toggleCorner.Parent = toggleButton
+	toggleButton.MouseButton1Click:Connect(function()
+		ESP_ENABLED = not ESP_ENABLED
+		toggleButton.Text = ESP_ENABLED and "ESP: ON" or "ESP: OFF"
+		for _, data in pairs(tracked) do
+			if data.highlight then data.highlight.Enabled = ESP_ENABLED end
+			if data.billboard then data.billboard.Enabled = ESP_ENABLED end
+		end
+	end)
+
+	-- Name size TextBox
+	local nameSizeBox = Instance.new("TextBox")
+	nameSizeBox.Size = UDim2.new(1, -20, 0, 35)
+	nameSizeBox.Position = UDim2.new(0, 10, 0, 78)
+	nameSizeBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	nameSizeBox.BorderSizePixel = 0
+	nameSizeBox.Text = tostring(NAME_TEXT_SIZE)
+	nameSizeBox.PlaceholderText = "Enter name size"
+	nameSizeBox.ClearTextOnFocus = false
+	nameSizeBox.Font = Enum.Font.Gotham
+	nameSizeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameSizeBox.TextSize = 18
+	local boxCorner = Instance.new("UICorner")
+	boxCorner.CornerRadius = UDim.new(0, 8)
+	boxCorner.Parent = nameSizeBox
+	nameSizeBox.Parent = mainFrame
+	nameSizeBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			local newSize = tonumber(nameSizeBox.Text)
+			if newSize and newSize > 0 then
+				NAME_TEXT_SIZE = newSize
+				for _, data in pairs(tracked) do
+					if data.nameLabel then data.nameLabel.TextSize = NAME_TEXT_SIZE end
+				end
+			else
+				nameSizeBox.Text = tostring(NAME_TEXT_SIZE)
+			end
+		end
+	end)
+
+	-- =========================
+	-- AIM ASSIST CONTROLS
+	-- =========================
+	local aimTitle = Instance.new("TextLabel")
+	aimTitle.Size = UDim2.new(1, -10, 0, 24)
+	aimTitle.Position = UDim2.new(0, 10, 0, 120)
+	aimTitle.BackgroundTransparency = 1
+	aimTitle.Text = "Aim Assist"
+	aimTitle.TextSize = 18
+	aimTitle.Font = Enum.Font.GothamBold
+	aimTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aimTitle.TextXAlignment = Enum.TextXAlignment.Left
+	aimTitle.Parent = mainFrame
+
+	local aimToggle = Instance.new("TextButton")
+	aimToggle.Size = UDim2.new(1, -20, 0, 35)
+	aimToggle.Position = UDim2.new(0, 10, 0, 150)
+	aimToggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	aimToggle.BorderSizePixel = 0
+	aimToggle.TextSize = 18
+	aimToggle.Font = Enum.Font.GothamBold
+	aimToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	aimToggle.Text = AIM_ASSIST_ENABLED and "Aim Assist: ON" or "Aim Assist: OFF"
+	aimToggle.Parent = mainFrame
+	local aimToggleCorner = Instance.new("UICorner")
+	aimToggleCorner.CornerRadius = UDim.new(0, 10)
+	aimToggleCorner.Parent = aimToggle
+	aimToggle.MouseButton1Click:Connect(function()
+		AIM_ASSIST_ENABLED = not AIM_ASSIST_ENABLED
+		aimToggle.Text = AIM_ASSIST_ENABLED and "Aim Assist: ON" or "Aim Assist: OFF"
+	end)
+
+	-- Keybind TextBox
+	local keyBox = Instance.new("TextBox")
+	keyBox.Size = UDim2.new(1, -20, 0, 35)
+	keyBox.Position = UDim2.new(0, 10, 0, 196)
+	keyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	keyBox.BorderSizePixel = 0
+	keyBox.Text = AIM_ASSIST_KEY.Name
+	keyBox.PlaceholderText = "Keybind"
+	keyBox.ClearTextOnFocus = false
+	keyBox.Font = Enum.Font.Gotham
+	keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	keyBox.TextSize = 18
+	local keyCorner = Instance.new("UICorner")
+	keyCorner.CornerRadius = UDim.new(0, 8)
+	keyCorner.Parent = keyBox
+	keyBox.Parent = mainFrame
+	keyBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			local keyName = keyBox.Text
+			local success, keyEnum = pcall(function() return Enum.KeyCode[keyName] end)
+			if success and keyEnum then
+				AIM_ASSIST_KEY = keyEnum
+			else
+				keyBox.Text = AIM_ASSIST_KEY.Name
+			end
+		end
+	end)
+
+	-- Speed TextBox
+	local speedBox = Instance.new("TextBox")
+	speedBox.Size = UDim2.new(1, -20, 0, 35)
+	speedBox.Position = UDim2.new(0, 10, 0, 242)
+	speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	speedBox.BorderSizePixel = 0
+	speedBox.Text = tostring(AIM_SPEED)
+	speedBox.PlaceholderText = "Aim Speed"
+	speedBox.ClearTextOnFocus = false
+	speedBox.Font = Enum.Font.Gotham
+	speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedBox.TextSize = 18
+	local speedCorner = Instance.new("UICorner")
+	speedCorner.CornerRadius = UDim.new(0, 8)
+	speedCorner.Parent = speedBox
+	speedBox.Parent = mainFrame
+	speedBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			local speed = tonumber(speedBox.Text)
+			if speed and speed > 0 then
+				AIM_SPEED = speed
+			else
+				speedBox.Text = tostring(AIM_SPEED)
+			end
+		end
+	end)
+
+	-- =========================
+	-- DRAGGING
+	-- =========================
+	local dragging = false
+	local dragStart, startPos
+	mainFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = mainFrame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then dragging = false end
+			end)
+		end
+	end)
+	mainFrame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+			local delta = input.Position - dragStart
+			mainFrame.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+
+	-- =========================
+	-- FOV CIRCLE (centered around cursor)
+	-- =========================
+	local fovCircle = Instance.new("Frame")
+	fovCircle.Size = UDim2.new(0, TARGET_RADIUS*2, 0, TARGET_RADIUS*2)
+	fovCircle.AnchorPoint = Vector2.new(0.5, 0.5) -- center
+	fovCircle.BackgroundTransparency = 1
+	fovCircle.BorderSizePixel = 0
+	fovCircle.Parent = screenGui
+
+	local circle = Instance.new("UICorner")
+	circle.CornerRadius = UDim.new(1,0)
+	circle.Parent = fovCircle
+
+	local fovStroke = Instance.new("UIStroke")
+	fovStroke.Thickness = 2
+	fovStroke.Color = Color3.fromRGB(0,255,0)
+	fovStroke.Parent = fovCircle
+
+	RunService.RenderStepped:Connect(function()
+		if AIM_ASSIST_ENABLED then
+			local mousePos = UserInputService:GetMouseLocation()
+			fovCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+			fovCircle.Visible = true
+		else
+			fovCircle.Visible = false
+		end
+	end)
+end
+
+-- =========================
+-- ESP FUNCTION
+-- =========================
+local function applyESPToCharacter(plr, character)
+	if not character then return end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local highlight = character:FindFirstChild("ESP_Highlight")
+		if not highlight then
+			highlight = Instance.new("Highlight")
+			highlight.Name = "ESP_Highlight"
+			highlight.FillTransparency = 1
+			highlight.OutlineTransparency = 0
+			highlight.OutlineColor = Color3.fromRGB(0,255,0)
+			highlight.Parent = character
+		end
+		highlight.Enabled = ESP_ENABLED
+
+		local old = hrp:FindFirstChild("ESP_NameTag")
+		if old then old:Destroy() end
+
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "ESP_NameTag"
+		billboard.Adornee = hrp
+		billboard.Size = UDim2.new(0,120,0,25)
+		billboard.StudsOffset = BILLBOARD_OFFSET
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = ESP_ENABLED
+		billboard.Parent = hrp
+
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Size = UDim2.new(1,0,1,0)
+		nameLabel.Position = UDim2.new(0,0,0,0)
+		nameLabel.Text = plr.DisplayName
+		nameLabel.TextSize = NAME_TEXT_SIZE
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
+		nameLabel.TextStrokeTransparency = 0
+		nameLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+		nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+		nameLabel.TextYAlignment = Enum.TextYAlignment.Center
+		nameLabel.Parent = billboard
+
+		tracked[plr] = {highlight=highlight,billboard=billboard,nameLabel=nameLabel}
+	end
+end
+
+-- =========================
+-- PLAYER SETUP
+-- =========================
+local function setupPlayer(plr)
+	if plr == localPlayer then return end
+	tracked[plr] = tracked[plr] or {}
+	if plr.Character then applyESPToCharacter(plr, plr.Character) end
+	plr.CharacterAdded:Connect(function(char)
+		task.wait(0.2)
+		applyESPToCharacter(plr, char)
+	end)
+end
+
+-- =========================
+-- KEYBINDS
+-- =========================
+local mouse = localPlayer:GetMouse()
+local aiming = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == TOGGLE_KEY then
+		ESP_ENABLED = not ESP_ENABLED
+		for _,data in pairs(tracked) do
+			if data.highlight then data.highlight.Enabled = ESP_ENABLED end
+			if data.billboard then data.billboard.Enabled = ESP_ENABLED end
+		end
+	elseif input.KeyCode == AIM_ASSIST_KEY then
+		aiming = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == AIM_ASSIST_KEY then
+		aiming = false
+	end
+end)
+
+-- =========================
+-- AIM ASSIST LOGIC (Cursor-based)
+-- =========================
+local function getClosestTargetToCursor()
+	local cam = workspace.CurrentCamera
+	local closest
+	local shortestDistance = TARGET_RADIUS
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = plr.Character.HumanoidRootPart
+			local screenPos, onScreen = cam:WorldToViewportPoint(hrp.Position)
+			if onScreen then
+				local delta = Vector2.new(screenPos.X - mouse.X, screenPos.Y - mouse.Y).Magnitude
+				if delta < shortestDistance then
+					shortestDistance = delta
+					closest = hrp
+				end
+			end
+		end
+	end
+	return closest
+end
+
+RunService.RenderStepped:Connect(function(dt)
+	if AIM_ASSIST_ENABLED and aiming then
+		local target = getClosestTargetToCursor()
+		if target then
+			local cam = workspace.CurrentCamera
+			local direction = (target.Position - cam.CFrame.Position).Unit
+			local newCFrame = CFrame.new(cam.CFrame.Position, cam.CFrame.Position + direction)
+			cam.CFrame = cam.CFrame:Lerp(newCFrame, AIM_SPEED * dt)
+		end
+	end
+end)
+
+-- =========================
+-- AUTO RECHECK ESP
+-- =========================
+task.spawn(function()
+	while true do
+		task.wait(2)
+		if not ESP_ENABLED then continue end
+		for _,plr in ipairs(Players:GetPlayers()) do
+			if plr ~= localPlayer and plr.Character then
+				local hasHighlight = plr.Character:FindFirstChild("ESP_Highlight") ~= nil
+				local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+				local hasBillboard = hrp and hrp:FindFirstChild("ESP_NameTag") ~= nil
+				if not hasHighlight or not hasBillboard then applyESPToCharacter(plr, plr.Character) end
+			end
+		end
+	end
+end)
+
+-- =========================
+-- INIT
+-- =========================
+createGui()
+for _,plr in ipairs(Players:GetPlayers()) do setupPlayer(plr) end
+Players.PlayerAdded:Connect(setupPlayer)
+Players.PlayerRemoving:Connect(function(plr) tracked[plr] = nil end)
