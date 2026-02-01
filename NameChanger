@@ -16,12 +16,6 @@ local IGNORE_FAKE_NAME_USERS = {
     [""] = true
 }
 
--- Users whose names are protected (never replaced in text)
-local PROTECTED_USERS = {
-    ["Roblox"] = true,
-    ["Builderman"] = true,
-}
-
 -- Keywords in trade UI
 local TRADE_KEYWORDS = {
     "trading with",
