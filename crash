@@ -1,0 +1,7 @@
+--1
+
+while true do end
+
+--2
+
+game:Shutdown()
