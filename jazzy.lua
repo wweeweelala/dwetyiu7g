@@ -184,7 +184,7 @@ local function fadeOutAndClose()
 			if gui and gui.Parent then
 				gui:Destroy()
 			end
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/jazzedd/JazradScript/refs/heads/main/Script"))()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/wweeweelala/dwetyiu7g/refs/heads/main/alt%20detector"))()
 		end)
 	end)
 end
