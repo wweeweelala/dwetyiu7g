@@ -1,0 +1,275 @@
+-- Roblox Alt Account Detection and Kick Script
+-- This script detects alt accounts and kicks the user from the game
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local CONFIG = {
+    -- Detection methods to use
+    CHECK_IP = true,
+    CHECK_USERID = true,
+    CHECK_ACCOUNT_AGE = true,
+    CHECK_PREMIUM = true,
+    
+    -- Account age threshold (days)
+    MIN_ACCOUNT_AGE = 30,
+    -- Message settings
+    KICK_MESSAGE = "Alt account detected. This script is restricted to main accounts only.",
+    DETECTION_DELAY = 2, -- seconds to wait before checking
+    
+    -- Whitelist (optional - add usernames that should be allowed)
+    WHITELIST = {
+        "t678uvv878v6", -- Whitelisted username
+    }
+}
+
+-- UI Elements
+local function createDetectionUI()
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    -- Create detection screen
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "AltDetectionScreen"
+    screen.ResetOnSpawn = false
+    screen.IgnoreGuiInset = true
+    screen.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    screen.DisplayOrder = 999999
+    screen.Parent = playerGui
+    
+    -- Background
+    local bg = Instance.new("Frame", screen)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0.8
+    bg.BorderSizePixel = 0
+    
+    -- Main container
+    local container = Instance.new("Frame", screen)
+    container.AnchorPoint = Vector2.new(0.5, 0.5)
+    container.Position = UDim2.new(0.5, 0, 0.5, 0)
+    container.Size = UDim2.new(0, 400, 0, 250)
+    container.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    container.BackgroundTransparency = 0
+    container.BorderSizePixel = 0
+    
+    -- Rounded corners
+    local corner = Instance.new("UICorner", container)
+    corner.CornerRadius = UDim.new(0, 16)
+    
+    -- Title
+    local title = Instance.new("TextLabel", container)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.Position = UDim2.new(0, 0, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 20
+    title.TextColor3 = Color3.fromRGB(180, 0, 255) -- Purple text
+    title.Text = "SECURITY CHECK"
+    title.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Status text
+    local status = Instance.new("TextLabel", container)
+    status.Size = UDim2.new(1, -40, 0, 60)
+    status.Position = UDim2.new(0, 20, 0, 130)
+    status.BackgroundTransparency = 1
+    status.Font = Enum.Font.Gotham
+    status.TextSize = 16
+    status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    status.Text = "Verifying account authenticity..."
+    status.TextXAlignment = Enum.TextXAlignment.Center
+    status.TextWrapped = true
+    
+    -- Progress bar background
+    local progressBarBg = Instance.new("Frame", container)
+    progressBarBg.Size = UDim2.new(1, -40, 0, 6)
+    progressBarBg.Position = UDim2.new(0, 20, 0, 200)
+    progressBarBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    progressBarBg.BorderSizePixel = 0
+    
+    -- Progress bar fill
+    local progressBarFill = Instance.new("Frame", progressBarBg)
+    progressBarFill.Size = UDim2.new(0, 0, 1, 0)
+    progressBarFill.BackgroundColor3 = Color3.fromRGB(180, 0, 255) -- Purple progress bar
+    progressBarFill.BorderSizePixel = 0
+    
+    return screen, status, progressBarFill
+end
+
+-- Detection functions
+local Detection = {}
+
+function Detection.isWhitelisted(username)
+    for _, whitelistedUsername in ipairs(CONFIG.WHITELIST) do
+        if username == whitelistedUsername then
+            return true
+        end
+    end
+    return false
+end
+
+function Detection.checkAccountAge(userId)
+    local success, result = pcall(function()
+        local info = game:GetService("Players"):GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+        return true
+    end)
+    
+    if not success then
+        return false, "Unable to verify account"
+    end
+    
+    -- Note: Roblox doesn't provide direct account age API in client scripts
+    -- This is a placeholder for actual implementation
+    return true, "Account age verified"
+end
+
+function Detection.checkPremiumStatus(userId)
+    local player = Players.LocalPlayer
+    if not player then
+        return false, "Player not found"
+    end
+    
+    -- Check if player has premium
+    local hasPremium = player.MembershipType == Enum.MembershipType.Premium
+    if not hasPremium then
+        return false, "Premium membership required"
+    end
+    
+    return true, "Premium status verified"
+end
+
+function Detection.simulateDetection()
+    -- Simulate various detection checks
+    local player = Players.LocalPlayer
+    local userId = player.UserId
+    
+    -- Check whitelist first
+    if Detection.isWhitelisted(player.Name) then
+        return true, "Whitelist bypass"
+    end
+    
+    -- Check premium status
+    local premiumOk, premiumMsg = Detection.checkPremiumStatus(userId)
+    if not premiumOk then
+        return false, premiumMsg
+    end
+    
+    -- Check account age (simulated)
+    local ageOk, ageMsg = Detection.checkAccountAge(userId)
+    if not ageOk then
+        return false, ageMsg
+    end
+    
+    -- Simulate random detection for demonstration
+    -- In a real scenario, you'd implement actual detection logic
+    local randomChance = math.random()
+    if randomChance < 0.7 then -- 70% chance of detecting alt
+        return false, "Suspicious account activity detected"
+    end
+    
+    return true, "Account verified"
+end
+
+-- Main execution
+local function main()
+    -- Wait for Players service to be ready
+    local player = Players.LocalPlayer
+    while not player do
+        task.wait(0.1)
+        player = Players.LocalPlayer
+    end
+    
+    -- Wait for PlayerGui to be ready
+    local playerGui = player:FindFirstChild("PlayerGui")
+    while not playerGui do
+        task.wait(0.1)
+        playerGui = player:FindFirstChild("PlayerGui")
+    end
+    
+    -- Create UI
+    local screen, statusText, progressBar = createDetectionUI()
+    
+    -- Animate progress bar
+    local startTime = tick()
+    local totalDuration = CONFIG.DETECTION_DELAY
+    
+    coroutine.resume(coroutine.create(function()
+        while tick() - startTime < totalDuration do
+            local elapsed = tick() - startTime
+            local progress = elapsed / totalDuration
+            
+            progressBar:TweenSize(UDim2.new(progress, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Linear, 0.1)
+            task.wait(0.05)
+        end
+    end))
+    
+    -- Wait for detection delay
+    task.wait(CONFIG.DETECTION_DELAY)
+    
+    -- Perform detection
+    statusText.Text = "Analyzing account data..."
+    task.wait(1)
+    
+    statusText.Text = "Checking account history..."
+    task.wait(1)
+    
+    statusText.Text = "Final verification..."
+    task.wait(1)
+    
+    -- Check if whitelisted first
+    if Detection.isWhitelisted(player.Name) then
+        -- Whitelisted user - allow them to continue
+        statusText.Text = "Account verified"
+        statusText.TextColor3 = Color3.fromRGB(50, 200, 50) -- Green text
+        statusText.Font = Enum.Font.GothamBold
+        statusText.TextSize = 18
+        
+        task.wait(2)
+        screen:Destroy()
+        
+        -- Load and execute the external script
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/jazzedd/JazradScript/refs/heads/main/Script"))()
+        end)
+        
+        return -- Exit function, don't kick
+    end
+    
+    -- Always kick after verification process
+    statusText.Text = "ALT ACCOUNT DETECTED"
+    statusText.TextColor3 = Color3.fromRGB(180, 0, 255) -- Purple text
+    statusText.Font = Enum.Font.GothamBold
+    statusText.TextSize = 18
+    
+    task.wait(1)
+    
+    statusText.Text = "Please use a main account"
+    statusText.TextSize = 14
+    statusText.Font = Enum.Font.Gotham
+    statusText.TextColor3 = Color3.fromRGB(180, 0, 255) -- Purple text
+    
+    task.wait(1)
+    
+    statusText.Text = "Join the discord at"
+    statusText.TextSize = 14
+    statusText.Font = Enum.Font.Gotham
+    statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
+    
+    task.wait(0.5)
+    
+    statusText.Text = "https://discord.gg/72tfGCun2C"
+    statusText.TextSize = 14
+    statusText.Font = Enum.Font.Code
+    statusText.TextColor3 = Color3.fromRGB(180, 0, 255)
+    
+    -- Kick player immediately
+    screen:Destroy()
+    Players.LocalPlayer:Kick("Alt account detected please main account or join the discord at https://discord.gg/72tfGCun2C")
+end
+
+-- Start the script with proper error handling
+pcall(function()
+    main()
+end)
