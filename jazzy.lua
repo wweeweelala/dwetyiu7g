@@ -9,7 +9,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- ===== Timing =====
-local LOAD_TIME = 60
+local LOAD_TIME = 90
 local SUCCESS_HOLD = 5
 
 local FADE_TEXT_TIME = 0.35
