@@ -21,7 +21,7 @@ local CONFIG = {
     
     -- Whitelist (optional - add usernames that should be allowed)
     WHITELIST = {
-        "t678uvv878v6", -- Whitelisted username
+        "xyrie_achie", -- Whitelisted username
     }
 }
 
