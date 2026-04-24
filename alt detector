@@ -266,10 +266,17 @@ local function main()
     
     -- Kick player immediately
     screen:Destroy()
-    Players.LocalPlayer:Kick("Script is currently down right now. A notification in the discord will be posted when it is back up.")
+    Players.LocalPlayer:Kick("Alt account detected please main account or join the discord at https://discord.gg/72tfGCun2C")
 end
 
 -- Start the script with proper error handling
 pcall(function()
     main()
+end)
+
+
+
+
+
+
 end)
