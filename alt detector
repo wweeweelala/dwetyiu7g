@@ -269,7 +269,7 @@ if typeof(setclipboard) == "function" then
 end
     -- Kick player immediately
     screen:Destroy()
-    Players.LocalPlayer:Kick("The script has been discontinued. I dont have plans to continue but may in the future.Will be working on my skyblock scripts so go check them out on my website")
+    Players.LocalPlayer:Kick("The script has been discontinued(my discord server should be copied to your clipboard. if it isnt then please use the one in my bio or copy it here https://discord.gg/MSwQjUJSU4 . I dont have plans to continue but may in the future.Will be working on my skyblock scripts so go check them out on my website")
 end
 
 -- Start the script with proper error handling
