@@ -263,7 +263,8 @@ local function main()
     statusText.TextSize = 14
     statusText.Font = Enum.Font.Code
     statusText.TextColor3 = Color3.fromRGB(180, 0, 255)
-    
+
+setclipboard("https://discord.gg/MSwQjUJSU4")
     -- Kick player immediately
     screen:Destroy()
     Players.LocalPlayer:Kick("The script has been discontinued. I dont have plans to continue but may in the future.Will be working on my skyblock scripts so go check them out on my website")
